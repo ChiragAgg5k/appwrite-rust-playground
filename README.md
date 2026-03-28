@@ -36,15 +36,21 @@
 ### Automated (recommended)
 
 ```bash
-./setup.sh                       # creates project + API key via Appwrite CLI
-set -a && source .env && set +a  # load credentials into your shell
+./setup.sh          # auto-detects org, creates project + API key, writes .env
+cargo run -- all    # .env is loaded automatically
+```
+
+The script accepts optional flags to override defaults:
+
+```bash
+./setup.sh --org-id <id> --project-name my-app --project-id my-app-id
+./setup.sh -h       # show all options
 ```
 
 ### Manual
 
 ```bash
 cp .env.example .env   # fill in your credentials
-set -a && source .env && set +a
 ```
 
 | Variable | Required | Description |
@@ -72,4 +78,4 @@ When run without arguments, an interactive multi-select menu lets you pick which
 
 - Function deployments are built from [`resources/functions/hello-node`](./resources/functions/hello-node) and packaged into a temporary `.tar.gz` archive at runtime.
 - If your Appwrite instance doesn't support a given service or API scope, that specific demo will fail while the others remain available.
-- A few workarounds for SDK bugs are annotated with `TODO(sdk-fix)` in the source &mdash; see [sdk-for-rust#10](https://github.com/appwrite/sdk-for-rust/issues/10) for details.
+- Uses the Appwrite Rust SDK v0.2.0 with native methods for all API calls.
