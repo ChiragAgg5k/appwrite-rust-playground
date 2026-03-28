@@ -1,6 +1,15 @@
-# Appwrite Rust Playground
+<p align="center">
+  <a href="https://appwrite.io"><img src="https://avatars.githubusercontent.com/u/25003669" alt="Appwrite" height="80" style="border-radius:16px"></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://www.rust-lang.org"><img src="https://www.rust-lang.org/logos/rust-logo-512x512.png" alt="Rust" height="80"></a>
+</p>
 
-A hands-on CLI playground for exploring the [Appwrite](https://appwrite.io) API using the official [`appwrite`](https://crates.io/crates/appwrite) Rust SDK. Run interactive demos against a real Appwrite instance, with colored output, spinners, and automatic resource cleanup.
+<h1 align="center">Appwrite Rust Playground</h1>
+
+<p align="center">
+  A hands-on CLI playground for exploring the <a href="https://appwrite.io">Appwrite</a> API using the official <a href="https://crates.io/crates/appwrite"><code>appwrite</code></a> Rust SDK.<br>
+  Run interactive demos against a real Appwrite instance, with colored output, spinners, and automatic resource cleanup.
+</p>
 
 ## Covered APIs
 
