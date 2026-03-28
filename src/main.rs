@@ -1,7 +1,7 @@
 use anyhow::{Context, Result, anyhow, bail};
 use appwrite::{
     Client, InputFile,
-    enums::{ExecutionMethod, Runtime},
+    enums::{ExecutionMethod, OrderBy, Runtime, TablesDBIndexType},
     id::ID,
     permission::Permission,
     query::Query,
@@ -14,7 +14,6 @@ use indicatif::{ProgressBar, ProgressStyle};
 use serde::Serialize;
 use serde_json::json;
 use std::{
-    collections::HashMap,
     env, fs,
     path::{Path, PathBuf},
     process::{Command, ExitCode},
@@ -337,54 +336,22 @@ impl Playground {
 
             spin_wait("Waiting for columns to become available...", Duration::from_secs(2)).await;
 
-            // TODO(sdk-fix): ColumnList model defines `columns: Vec<String>` but the
-            // API returns full column objects (maps with key, type, status, etc.).
-            //   Fix: In models/column_list.rs, change the field type from
-            //        `pub columns: Vec<String>` to `pub columns: Vec<serde_json::Value>`
-            //        (or better, a `Column` enum that can deserialize any column type).
-            //   Same bug exists in models/attribute_list.rs (`attributes: Vec<String>`).
-            let listed_columns: serde_json::Value = tablesdb
-                .client()
-                .call(
-                    reqwest::Method::GET,
-                    &format!(
-                        "/tablesdb/{}/tables/{}/columns",
-                        database_id_ref, table_id_ref
-                    ),
-                    None,
-                    Some(HashMap::from([
-                        ("total".to_string(), json!(true)),
-                    ])),
-                )
+            let listed_columns = tablesdb
+                .list_columns(database_id_ref, table_id_ref, None, Some(true))
                 .await
                 .context("tablesdb.list_columns() failed")?;
             print_json("Listed columns", &listed_columns)?;
 
             // --- Indexes ---
-            // TODO(sdk-fix): `create_index` in services/tables_db.rs (and services/databases.rs)
-            // types `orders` as `Option<OrderBy>` (single enum) and serializes it with
-            // `json!(value)` → `"asc"`. The API expects an array: `["asc"]`.
-            //   Fix: Change the parameter type from `Option<crate::enums::OrderBy>` to
-            //        `Option<Vec<crate::enums::OrderBy>>` (or `Option<Vec<String>>`)
-            //        so it serializes as `json!(["asc"])` matching the API spec.
-            let created_index: serde_json::Value = tablesdb
-                .client()
-                .call(
-                    reqwest::Method::POST,
-                    &format!(
-                        "/tablesdb/{}/tables/{}/indexes",
-                        database_id_ref, table_id_ref
-                    ),
-                    Some(HashMap::from([(
-                        "content-type".to_string(),
-                        "application/json".to_string(),
-                    )])),
-                    Some(HashMap::from([
-                        ("key".to_string(), json!("idx_release_year")),
-                        ("type".to_string(), json!("key")),
-                        ("columns".to_string(), json!(["release_year"])),
-                        ("orders".to_string(), json!(["asc"])),
-                    ])),
+            let created_index = tablesdb
+                .create_index(
+                    database_id_ref,
+                    table_id_ref,
+                    "idx_release_year",
+                    TablesDBIndexType::Key,
+                    ["release_year"],
+                    Some(vec![OrderBy::Asc]),
+                    None,
                 )
                 .await
                 .context("tablesdb.create_index() failed")?;
@@ -533,33 +500,12 @@ impl Playground {
                     )
                 })?;
 
-            // TODO(sdk-fix): `Storage::create_file` in services/storage.rs passes
-            // `upload_id: Some(file_id_str)` to `client.file_upload`. In client.rs
-            // line ~622, when `upload_id` is Some, the URL becomes
-            // `{endpoint}{path}/{id}` → POST /storage/buckets/{b}/files/{fileId}
-            // which is a non-existent route (create is POST /storage/buckets/{b}/files).
-            //   Fix: In `Storage::create_file`, pass `None` for the upload_id param
-            //        (it's only needed for resumable/chunked uploads, not initial create).
-            //        Or change `file_upload` to not append the id for the initial request.
-            let file_id_str: String = ID::unique().into();
-            let mut file_params = HashMap::new();
-            file_params.insert("fileId".to_string(), json!(file_id_str));
-            file_params.insert(
-                "permissions".to_string(),
-                json!(default_file_permissions()),
-            );
-            let created_file: serde_json::Value = storage
-                .client()
-                .file_upload(
-                    &format!("/storage/buckets/{}/files", bucket_id_ref),
-                    Some(HashMap::from([(
-                        "content-type".to_string(),
-                        "multipart/form-data".to_string(),
-                    )])),
-                    file_params,
-                    "file",
+            let created_file = storage
+                .create_file(
+                    bucket_id_ref,
+                    ID::unique(),
                     upload,
-                    None,
+                    Some(default_file_permissions()),
                 )
                 .await
                 .context("storage.create_file() failed")?;
@@ -889,6 +835,9 @@ async fn main() -> ExitCode {
 
 async fn real_main() -> Result<()> {
     print_banner();
+
+    // Load .env file if present (silently ignore if missing)
+    let _ = dotenvy::dotenv();
 
     let args: Vec<String> = env::args().skip(1).collect();
     let demos = parse_requested_demos(&args)?;
