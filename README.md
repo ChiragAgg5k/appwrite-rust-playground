@@ -1,159 +1,66 @@
 # Appwrite Rust Playground
 
-Appwrite playground is a simple way to explore the Appwrite API and the
-[`appwrite`](https://crates.io/crates/appwrite) Rust SDK. This repo is modeled
-after Appwrite's other playgrounds, with a Rust-first CLI that runs isolated
-examples for multiple services.
+A hands-on CLI playground for exploring the [Appwrite](https://appwrite.io) API using the official [`appwrite`](https://crates.io/crates/appwrite) Rust SDK. Run interactive demos against a real Appwrite instance, with colored output, spinners, and automatic resource cleanup.
 
 ## Covered APIs
 
-- Health
-  - Get overall status
-  - Get database status
-  - Get storage status
-  - Get server time
-- TablesDB
-  - Create database
-  - List databases
-  - Get database
-  - Update database
-  - Create table
-  - List tables
-  - Get table
-  - Update table
-  - Create columns
-  - Create index
-  - Create row
-  - List rows
-  - Get row
-  - Update row
-- Storage
-  - Create bucket
-  - List buckets
-  - Get bucket
-  - Update bucket
-  - Upload file
-  - List files
-  - Get file
-  - Update file
-  - Download file
-- Users
-  - Create user
-  - List users
-  - Get user
-  - Update name
-  - Get prefs
-  - Update prefs
-- Functions
-  - Create function
-  - List functions
-  - Get function
-  - Update function
-  - Upload deployment
-  - List deployments
-  - Create variable
-  - List variables
-  - Get variable
-  - Update variable
-  - Execute function sync
-  - Execute function async
-  - List executions
+| Service | What it demos |
+|---------|---------------|
+| **Health** | Server status, database health, storage health, server time |
+| **TablesDB** | Database + table CRUD, string & integer columns, indexes, row CRUD with query filters |
+| **Storage** | Bucket CRUD, file upload / download / rename |
+| **Users** | User CRUD, name updates, preference management |
+| **Functions** | Function CRUD, Node.js deployment, env variables, sync & async execution |
+
+> Every mutating demo creates temporary resources and cleans them up automatically when finished.
 
 ## Requirements
 
-- Rust toolchain installed
-- An Appwrite instance (or [Appwrite Cloud](https://cloud.appwrite.io))
-- [Appwrite CLI](https://appwrite.io/docs/tooling/command-line/installation) installed and logged in (`appwrite login`)
-- `jq` installed (`brew install jq` on macOS)
-- `tar` available on your machine if you want to run the `functions` demo
+- **Rust** toolchain (edition 2024)
+- An **Appwrite** instance &mdash; [Appwrite Cloud](https://cloud.appwrite.io) works out of the box
+- [**Appwrite CLI**](https://appwrite.io/docs/tooling/command-line/installation) installed and logged in (`appwrite login`) &mdash; only needed for automated setup
+- **jq** (`brew install jq` on macOS) &mdash; only needed for automated setup
+- **tar** &mdash; only needed for the `functions` demo
 
 ## Setup
 
 ### Automated (recommended)
 
-The setup script uses the Appwrite CLI to create a project, generate an API key
-with all the required scopes, and write everything to `.env`:
-
 ```bash
-./setup.sh
-```
-
-Then load the environment:
-
-```bash
-set -a && source .env && set +a
+./setup.sh                       # creates project + API key via Appwrite CLI
+set -a && source .env && set +a  # load credentials into your shell
 ```
 
 ### Manual
 
-Copy the example env file and fill in your Appwrite credentials:
-
 ```bash
-cp .env.example .env
+cp .env.example .env   # fill in your credentials
+set -a && source .env && set +a
 ```
 
-Then export it into your shell:
-
-```bash
-set -a
-source .env
-set +a
-```
-
-You can also export the variables manually:
-
-```bash
-export APPWRITE_API_KEY="your-api-key"
-export APPWRITE_ENDPOINT="https://cloud.appwrite.io/v1"
-export APPWRITE_PROJECT_ID="your-project-id"
-export APPWRITE_SELF_SIGNED=false
-```
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `APPWRITE_ENDPOINT` | Yes | e.g. `https://cloud.appwrite.io/v1` |
+| `APPWRITE_PROJECT_ID` | Yes | Your Appwrite project ID |
+| `APPWRITE_API_KEY` | Yes | Server API key with required scopes |
+| `APPWRITE_SELF_SIGNED` | No | Set to `true` for self-signed TLS certs |
+| `APPWRITE_SAMPLE_FILE` | No | Path to upload file (default: `resources/sample-upload.txt`) |
+| `APPWRITE_FUNCTION_SOURCE_DIR` | No | Path to function source (default: `resources/functions/hello-node`) |
 
 ## Run
 
-Default command:
-
 ```bash
-cargo run
+cargo run                          # interactive demo picker
+cargo run -- tablesdb              # run a single demo
+cargo run -- tablesdb storage      # run multiple demos
+cargo run -- all                   # run everything
+cargo run -- help                  # show available commands
 ```
 
-When run without arguments, an interactive menu lets you pick which demos to run.
-
-Run a single mutating demo:
-
-```bash
-cargo run -- tablesdb
-cargo run -- storage
-cargo run -- users
-cargo run -- functions
-```
-
-Run multiple demos:
-
-```bash
-cargo run -- tablesdb storage users
-```
-
-Run everything:
-
-```bash
-cargo run -- all
-```
-
-Show available commands:
-
-```bash
-cargo run -- help
-```
+When run without arguments, an interactive multi-select menu lets you pick which demos to run.
 
 ## Notes
 
-- All demos except `health` create temporary Appwrite resources and then try to
-  delete them again at the end.
-- Storage uploads use [`resources/sample-upload.txt`](./resources/sample-upload.txt)
-  by default.
-- Function deployments are built from
-  [`resources/functions/hello-node`](./resources/functions/hello-node) and
-  packaged into a temporary `.tar.gz` archive at runtime.
-- If your Appwrite instance doesn't support a given product or API scope yet,
-  that specific demo will fail while the others remain available.
+- Function deployments are built from [`resources/functions/hello-node`](./resources/functions/hello-node) and packaged into a temporary `.tar.gz` archive at runtime.
+- If your Appwrite instance doesn't support a given service or API scope, that specific demo will fail while the others remain available.
+- A few workarounds for SDK bugs are annotated with `TODO(sdk-fix)` in the source &mdash; see [sdk-for-rust#10](https://github.com/appwrite/sdk-for-rust/issues/10) for details.
